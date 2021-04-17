@@ -4,13 +4,28 @@ import athena.federation.models as models
 
 
 class AthenaFederationSDK(ABC):
+    """
+    AthenaFederationSDK is a Python implmementation of the Athena Federeated Query SDK.
+
+    All the methods in this class must be implemented for an AWS Lambda function to be able to
+    serve as a Data Connector for Athena.
+
+    The "catalog name" is defined in Athena when you create a data connector and passed to the Lambda function
+    in all requests.
+    "Schema" is interchangeable with database.
+    """
+
     @abstractmethod
-    def __init__(self, event) -> None:
-        self.event = event
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def PingRequest(self) -> models.PingResponse:
-        """Basic ping request that returns metadata about this connector"""
+        """
+        Return metadata about the data connector. 
+
+        This is used by Athena to verify the Lambda function is accessible.
+        """
         raise NotImplementedError
 
     @abstractmethod
