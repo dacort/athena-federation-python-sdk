@@ -52,9 +52,9 @@ class TableDefinition:
 class ListTablesResponse:
     requestType = 'LIST_TABLES'
 
-    def __init__(self, catalogName, tableDefinitions=[]) -> None:
+    def __init__(self, catalogName, tableDefinitions=None) -> None:
         self.catalogName = catalogName
-        self.tables = tableDefinitions
+        self.tables = tableDefinitions or []
 
     def addTableDefinition(self, schemaName, tableName) -> None:
         self.tables.append(TableDefinition(schemaName, tableName))
@@ -71,12 +71,12 @@ class ListTablesResponse:
 class GetTableResponse:
     request_type = 'GET_TABLE'
 
-    def __init__(self, catalogName, databaseName, tableName, schema, partitionColumns=[]) -> None:
+    def __init__(self, catalogName, databaseName, tableName, schema, partitionColumns=None) -> None:
         self.catalogName = catalogName
         self.databaseName = databaseName
         self.tableName = tableName
         self.schema = schema
-        self.partitions = partitionColumns
+        self.partitions = partitionColumns or []
 
     def as_dict(self):
         return {
