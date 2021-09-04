@@ -66,6 +66,7 @@ class ListTablesResponse:
             "tables": [t.as_dict() for t in self.tables],
             "requestType": self.requestType
         }
+        # Missing nextToken - listtables can be paginated
 
 
 class GetTableResponse:

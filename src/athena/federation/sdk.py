@@ -5,7 +5,7 @@ import athena.federation.models as models
 
 class AthenaFederationSDK(ABC):
     """
-    AthenaFederationSDK is a Python implmementation of the Athena Federeated Query SDK.
+    AthenaFederationSDK is a Python implmementation of the Athena Federated Query SDK.
 
     All the methods in this class must be implemented for an AWS Lambda function to be able to
     serve as a Data Connector for Athena.
