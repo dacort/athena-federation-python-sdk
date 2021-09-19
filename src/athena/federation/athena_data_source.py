@@ -4,6 +4,13 @@ from typing import Any, Dict, List, Mapping
 import pyarrow as pa
 
 class AthenaDataSource(ABC):
+    """
+    AthenaDataCatalog is a class that makes it easy to build a custom data connector for Athena using Python.
+
+    The class is designed to be used a base class for a custom data connector.
+    Once defined, it is then passed to `AthenaLambdaHandler`. That class handles the
+    majority of encoding your responses in the format necessary for the Athena SDK.
+    """
     def __init__(self) -> None:
         self._data_source_type = "athena_python_sdk"
 
