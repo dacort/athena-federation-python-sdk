@@ -2,6 +2,20 @@
 
 This is an _unofficial_ Python SDK for Athena Federation.
 
+## Overview
+
+The Python SDK makes it easy to create new Amazon Athena Data Source Connectors using Python. It is under active development so the API may change from version to version.
+
+You can see an example implementation that [queries Google Sheets using Athena](https://github.com/dacort/athena-gsheets).
+
+![gsheets_example](https://user-images.githubusercontent.com/1512/134044216-f8498ce8-2015-4935-bc95-6f9fd5234a25.png)
+
+### Current Limitations
+
+- Partitions are not supported, so Athena will not parallelize the query using partitions.
+- Splits are not supported (but coming soon), so Athena will only make 1 request to query your data.
+- Spill to S3 is not supported, so responses must be under 6MB.
+
 ## Local Development
 
 - Ensure you've got the `build` module install and SDK dependencies.
