@@ -46,8 +46,8 @@ You can test your Lambda function locally using Lambda Docker images.
 First, build our Docker image and run it.
 
 ```shell
-docker build -t local/athena-python-sdk .
-docker run --rm -p 9000:8080 local/athena-python-sdk
+docker build -t local/athena-python-example .
+docker run --rm -p 9000:8080 local/athena-python-example
 ```
 
 Then, we can execute a sample `PingRequest`.
@@ -98,7 +98,7 @@ aws ecr create-repository --repository-name athena_example --image-scanning-conf
 3. Push tag the image with the repo name and push it up
 
 ```shell
-docker tag athena_example:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/athena_example:${IMAGE_TAG}
+docker tag local/athena-python-example ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/athena_example:${IMAGE_TAG}
 aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/athena_example:${IMAGE_TAG}
 ```
@@ -153,6 +153,7 @@ aws lambda create-function \
     --code ImageUri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/athena_example:${IMAGE_TAG} \
     --environment 'Variables={TARGET_BUCKET=<BUCKET_NAME>}' \
     --description "Example Python implementation for Athena Federated Queries" \
+    --timeout 60 \
     --package-type Image
 ```
 

@@ -169,3 +169,21 @@ class ReadRecordsResponse:
             },
             "requestType": self.request_type
         }
+
+class RemoteReadRecordsResponse:
+    request_type = 'READ_RECORDS'
+
+    def __init__(self, catalogName, schema, remoteBlocks, encryptionKey) -> None:
+        self.catalogName = catalogName
+        self.schema = schema
+        self.remoteBlocks = remoteBlocks
+        self.encryptionKey = encryptionKey
+
+    def as_dict(self):
+        return {
+            "@type": "RemoteReadRecordsResponse",
+            "catalogName": self.catalogName,
+            "schema": {"schema": AthenaSDKUtils.encode_pyarrow_object(self.schema)},
+            "remoteBlocks": [self.remoteBlocks],
+            "encryptionKey": None
+        }

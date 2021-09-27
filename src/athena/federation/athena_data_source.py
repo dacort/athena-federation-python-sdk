@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Mapping
+from typing import Any, Dict, List, Mapping, Union, Generator
 
 import pyarrow as pa
 
@@ -73,10 +73,12 @@ class AthenaDataSource(ABC):
         return []
     
     @abstractmethod
-    def records(self, database_name: str, table_name: str, split: Mapping[str,str]) -> Dict[str,List[Any]]:
+    def records(self, database_name: str, table_name: str, split: Mapping[str,str]) -> Union[Dict[str,List[Any]], Generator[Dict[str,List[Any]],None,None]]:
         """
         Return a dictionary of records for the given table and split.
 
         The dictionary must have the column names as the keys and column data as a list.
+
+        Either a single batch of records can be returned or a generator of records.
         """
         pass
