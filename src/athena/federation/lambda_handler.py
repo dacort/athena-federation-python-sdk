@@ -1,3 +1,4 @@
+from athena.federation.batch_writer import BatchWriter
 from athena.federation.sdk import AthenaFederationSDK
 from athena.federation.athena_data_source import AthenaDataSource
 from athena.federation.utils import AthenaSDKUtils
@@ -79,9 +80,12 @@ class AthenaLambdaHandler(AthenaFederationSDK):
             data_source_splits_props = [{}]
         splits = [
             {
-                "spillLocation": AthenaSDKUtils.generate_spill_metadata(self.spill_bucket, "athena-spill"),
+                "spillLocation": AthenaSDKUtils.generate_spill_metadata(
+                    self.spill_bucket, "athena-spill"
+                ),
                 "properties": props,
-            } for props in data_source_splits_props
+            }
+            for props in data_source_splits_props
         ]
         return models.GetSplitsResponse(self.catalog_name, splits)
 
@@ -91,10 +95,39 @@ class AthenaLambdaHandler(AthenaFederationSDK):
         schema = AthenaSDKUtils.parse_encoded_schema(self.event["schema"]["schema"])
         database_name = self.event.get("tableName").get("schemaName")
         table_name = self.event.get("tableName").get("tableName")
+        split = self.event.get("split")
+        split_properties = split.get("properties", {})
 
-        # We just generate sample messages here
-        records = self.data_source.records(database_name, table_name, None)
+        # If the data source returns a generator, we can begin streaming records
+        # to a RecordBatchStreamWriter.
+        # Otherwise we take the response and wrap it in a list.
+        records = self.data_source.records(database_name, table_name, split_properties)
+        if isinstance(records, dict):
+            records = [records]
 
         # Convert the records to pyarrow records
-        pa_records = AthenaSDKUtils.encode_pyarrow_records(schema, records)
-        return models.ReadRecordsResponse(self.catalog_name, schema, pa_records)
+        # Regardless of the return type, we stream it so we can spill to S3.
+        # If the resulting batch is <6MB, we can return it immediately.
+        writer = BatchWriter(split.get("spillLocation"), schema)
+        for record_batch in records:
+            writer.write_rows(record_batch)
+
+        writer.close()
+        if writer.spilled:
+            return models.RemoteReadRecordsResponse(
+                self.catalog_name,
+                schema,
+                {
+                    "@type": "S3SpillLocation",
+                    "bucket": split.get("spillLocation").get("bucket"),
+                    "key": split.get("spillLocation").get("key") + "/spill.0",
+                    "directory": False,
+                },
+                None,
+            )
+        else:
+            # TODO: Don't convert to a pydict
+            pa_records = AthenaSDKUtils.encode_pyarrow_records(
+                schema, writer.all_records().to_pydict()
+            )
+            return models.ReadRecordsResponse(self.catalog_name, schema, pa_records)

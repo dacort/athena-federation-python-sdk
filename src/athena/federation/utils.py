@@ -17,6 +17,7 @@ class AthenaSDKUtils:
         return pa.read_schema(pa.BufferReader(base64.b64decode(b64_schema)))
 
     def encode_pyarrow_records(pya_schema, record_hash):
+        # This is basically the same as pa.record_batch(data, names=['c0', 'c1', 'c2'])
         return pa.RecordBatch.from_arrays(
             [pa.array(record_hash[name]) for name in pya_schema.names],
             schema=pya_schema,
@@ -37,6 +38,6 @@ class AthenaSDKUtils:
         return {
             "@type": "S3SpillLocation",
             "bucket": bucket_name,
-            "key": f"bucket_path/f{str(uuid4())}",
+            "key": f"{bucket_path}/f{str(uuid4())}",
             "directory": True,
         }
