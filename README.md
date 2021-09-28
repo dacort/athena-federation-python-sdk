@@ -13,8 +13,6 @@ You can see an example implementation that [queries Google Sheets using Athena](
 ### Current Limitations
 
 - Partitions are not supported, so Athena will not parallelize the query using partitions.
-- Splits are not supported (but coming soon), so Athena will only make 1 request to query your data.
-- Spill to S3 is not supported, so responses must be under 6MB.
 
 ## Local Development
 
