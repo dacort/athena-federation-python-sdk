@@ -12,7 +12,7 @@ COPY pyproject.toml setup.cfg /app/
 RUN python -m build
 
 ## Now use the compiled wheel in our lambda function
-FROM public.ecr.aws/lambda/python:3.8 AS lambda
+FROM amazon/aws-lambda-python:3.8.2021.12.09.15 AS lambda
 
 ENV TARGET_BUCKET=replace_me
 
