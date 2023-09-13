@@ -14,6 +14,9 @@ You can see an example implementation that [queries Google Sheets using Athena](
 
 - Partitions are not supported, so Athena will not parallelize the query using partitions.
 
+## Example Implementations
+- [Athena data source connector for Minio](https://github.com/Proximie/athena-connector-for-minio/)
+
 ## Local Development
 
 - Ensure you've got the `build` module install and SDK dependencies.
