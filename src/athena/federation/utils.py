@@ -14,7 +14,7 @@ class AthenaSDKUtils:
         return base64.b64encode(pya_obj.serialize().slice(4)).decode("utf-8")
 
     def parse_encoded_schema(b64_schema):
-        return pa.read_schema(pa.BufferReader(base64.b64decode(b64_schema)))
+        return pa.ipc.open_stream(pa.BufferReader(base64.b64decode(b64_schema))).schema
 
     def encode_pyarrow_records(pya_schema, record_hash):
         # This is basically the same as pa.record_batch(data, names=['c0', 'c1', 'c2'])
