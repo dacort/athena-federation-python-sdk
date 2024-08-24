@@ -15,46 +15,44 @@ You can see an example implementation that [queries Google Sheets using Athena](
 - Partitions are not supported, so Athena will not parallelize the query using partitions.
 
 ## Example Implementations
+
 - [Athena data source connector for Minio](https://github.com/Proximie/athena-connector-for-minio/)
 
-## Local Development
-
-- Ensure you've got the `build` module install and SDK dependencies.
-
-```
-pip install build
-pip install -r requirements.txt
-```
-
-- Now make a wheel.
-
-```shell
-python -m build
-```
-
-This will create a file in `dist/`: `dist/unoffical_athena_federation_sdk-0.0.0-py3-none-any.whl`
-
-Copy that file to your example repo and you can include it in your `requirements.txt` like so:
-
-```
-unoffical-athena-federation-sdk @ file:///unoffical_athena_federation_sdk-0.0.0-py3-none-any.whl
-```
-
-## Validating your connector
+## Testing Connector Locally Using Docker
 
 You can test your Lambda function locally using Lambda Docker images.
+Note that you must have a Docker daemon running on your machine.
+You can test it by calling the CLI:
+
+### Verifying Docker is running
+
+```shell
+docker ps
+```
+
+### Logging in to Docker
+
+You will need an account on, e.g., [Docker Hub](https://hub.docker.com).
+
+```shell
+sudo docker login
+# username
+# password
+```
+
+### Build Docker Images
 
 First, build our Docker image and run it.
 
 ```shell
-docker build -t local/athena-python-example .
-docker run --rm -p 9000:8080 local/athena-python-example
+make docker-build
+make docker-detached  # or docker-run for testing
 ```
 
 Then, we can execute a sample `PingRequest`.
 
 ```shell
-curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"@type": "PingRequest", "identity": {"id": "UNKNOWN", "principal": "UNKNOWN", "account": "123456789012", "arn": "arn:aws:iam::123456789012:root", "tags": {}, "groups": []}, "catalogName": "athena_python_sdk", "queryId": "1681559a-548b-4771-874c-2aa2ea7c39ab"}'
+make lambda-ping
 ```
 
 ```json
@@ -64,18 +62,20 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
 We can also list schemas.
 
 ```shell
-curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"@type": "ListSchemasRequest", "identity": {"id": "UNKNOWN", "principal": "UNKNOWN", "account": "123456789012", "arn": "arn:aws:iam::123456789012:root", "tags": {}, "groups": []}, "catalogName": "athena_python_sdk", "queryId": "1681559a-548b-4771-874c-2aa2ea7c39ab"}'
+make lambda-list-schemas
 ```
 
 ```json
 {"@type": "ListSchemasResponse", "catalogName": "athena_python_sdk", "schemas": ["sampledb"], "requestType": "LIST_SCHEMAS"}
 ```
 
-## Creating your Lambda function
+## Deploying your Lambda function to AWS
+
+### Creating your Lambda function
 
 💁 _Please note these are manual instructions until a [serverless application](https://aws.amazon.com/serverless/serverlessrepo/) can be built._
 
-0. First, let's define some variables we need throughout.
+1. First, let's define some variables we need throughout.
 
 ```shell
 export SPILL_BUCKET=<BUCKET_NAME>
@@ -90,13 +90,13 @@ export IMAGE_TAG=v0.0.1
 aws s3 mb ${SPILL_BUCKET}
 ```
 
-2. Create an ECR repository for this image
+1. Create an ECR repository for this image
 
 ```shell
 aws ecr create-repository --repository-name athena_example --image-scanning-configuration scanOnPush=true
 ```
 
-3. Push tag the image with the repo name and push it up
+1. Push tag the image with the repo name and push it up
 
 ```shell
 docker tag local/athena-python-example ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/athena_example:${IMAGE_TAG}
@@ -104,7 +104,7 @@ aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_
 docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/athena_example:${IMAGE_TAG}
 ```
 
-4. Create an IAM role that will allow your Lambda function to execute
+1. Create an IAM role that will allow your Lambda function to execute
 
 _Note the `Arn` of the role that's returned_
 
@@ -117,7 +117,7 @@ aws iam attach-role-policy \
     --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 ```
 
-5. Grant the IAM role access to your S3 bucket
+1. Grant the IAM role access to your S3 bucket
 
 ```shell
 aws iam create-policy --policy-name athena-example-s3-access --policy-document '{
@@ -144,8 +144,7 @@ aws iam attach-role-policy \
     --policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/athena-example-s3-access
 ```
 
-
-6. Now create your function pointing to the created repository image
+1. Now create your function pointing to the created repository image
 
 ```shell
 aws lambda create-function \
@@ -158,17 +157,13 @@ aws lambda create-function \
     --package-type Image
 ```
 
-## Connect with Athena!
+### Connect with Athena
 
 1. Choose "Data sources" on the top navigation bar in the Athena console and then click "Connect data source"
 
-![](docs/athena_connect.png)
+1. Choose the Lambda function you just created and click `Connect`!
 
-2. Choose the Lambda function you just created and click `Connect`!
-
-![](docs/athena_connect_lambda.png)
-
-## Updating the Lambda function
+### Updating the Lambda function
 
 If you update the Lambda function, re-run the build and push steps (updating the `IMAGE_TAG` variable) and then update the Lambda function:
 
@@ -176,4 +171,39 @@ If you update the Lambda function, re-run the build and push steps (updating the
 aws lambda update-function-code \
     --function-name athena-python-example \
     --image-uri ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/athena_example:${IMAGE_TAG}
+```
+
+## Local Development
+
+This version now uses Poetry for dependency management.
+Everything is accessible via a Makefile.
+
+### Run Tests
+
+```shell
+make # test (with coverage)
+```
+
+### Build and Install
+
+```shell
+make install
+```
+
+### Linting
+
+```shell
+make lint
+```
+
+### Run tests continuously
+
+```shell
+make watch
+```
+
+### Push `athena_federation` to PyPI
+
+```shell
+make publish
 ```

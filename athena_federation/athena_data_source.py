@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Mapping, Union, Generator
+from typing import Any, Dict, Generator, List, Mapping, Union
 
 import pyarrow as pa
+
 
 class AthenaDataSource(ABC):
     """
@@ -11,6 +12,7 @@ class AthenaDataSource(ABC):
     Once defined, it is then passed to `AthenaLambdaHandler`. That class handles the
     majority of encoding your responses in the format necessary for the Athena SDK.
     """
+
     def __init__(self) -> None:
         self._data_source_type = "athena_python_sdk"
 
@@ -18,7 +20,7 @@ class AthenaDataSource(ABC):
     def data_source_type(self):
         """Get the data source type. Only used for PingRequest and debugging."""
         return self._data_source_type
-    
+
     @abstractmethod
     def databases(self) -> List[str]:
         """
@@ -46,7 +48,7 @@ class AthenaDataSource(ABC):
         If you want to be more specific, override the `table_schema` method instead.
         """
         return []
-    
+
     @abstractmethod
     def schema(self, database_name: str, table_name: str) -> pa.Schema:
         """
@@ -55,10 +57,12 @@ class AthenaDataSource(ABC):
         The default implementation uses the `columns` method to get a list of
         of columns and returns them all of type `string`.
         """
-        return pa.schema(
-            [(col, pa.string()) for col in self.columns(database_name, table_name)]
-        )
-    
+        string_schema: List[pa.Field[Any]] = [
+            pa.field(col, pa.string())
+            for col in self.columns(database_name, table_name)
+        ]
+        return pa.schema(string_schema)
+
     def splits(self, database_name: str, table_name: str) -> List[Dict]:
         """
         Return a list of splits for the given table.
@@ -71,9 +75,11 @@ class AthenaDataSource(ABC):
         you can use the default implementation, which generates a single split.
         """
         return []
-    
+
     @abstractmethod
-    def records(self, database_name: str, table_name: str, split: Mapping[str,str]) -> Union[Dict[str,List[Any]], Generator[Dict[str,List[Any]],None,None]]:
+    def records(
+        self, database_name: str, table_name: str, split: Mapping[str, str]
+    ) -> Union[Dict[str, List[Any]], Generator[Dict[str, List[Any]], None, None]]:
         """
         Return a dictionary of records for the given table and split.
 

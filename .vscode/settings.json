@@ -3,5 +3,6 @@
     "python.pythonPath": ".venv/bin/python",
     "python.analysis.extraPaths": [
         "src.*"
-    ]
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 }

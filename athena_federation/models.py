@@ -1,8 +1,7 @@
 from uuid import uuid4
 
-from athena.federation.utils import AthenaSDKUtils
-
 import pyarrow as pa
+from athena_federation.utils import AthenaSDKUtils
 
 # https://github.com/awslabs/aws-athena-query-federation/blob/master/athena-federation-sdk/src/main/java/com/amazonaws/athena/connector/lambda/handlers/FederationCapabilities.java#L33
 CAPABILITIES = 23
@@ -17,15 +16,15 @@ class PingResponse:
     def as_dict(self):
         return {
             "@type": "PingResponse",
-            "catalogName":  self.catalogName,
+            "catalogName": self.catalogName,
             "queryId": self.queryId,
             "sourceType": self.sourceType,
-            "capabilities": CAPABILITIES
+            "capabilities": CAPABILITIES,
         }
 
 
 class ListSchemasResponse:
-    requestType = 'LIST_SCHEMAS'
+    requestType = "LIST_SCHEMAS"
 
     def __init__(self, catalogName, schemas) -> None:
         self.catalogName = catalogName
@@ -33,10 +32,10 @@ class ListSchemasResponse:
 
     def as_dict(self):
         return {
-            "@type": 'ListSchemasResponse',
+            "@type": "ListSchemasResponse",
             "catalogName": self.catalogName,
             "schemas": self.schemas,
-            "requestType": self.requestType
+            "requestType": self.requestType,
         }
 
 
@@ -50,7 +49,7 @@ class TableDefinition:
 
 
 class ListTablesResponse:
-    requestType = 'LIST_TABLES'
+    requestType = "LIST_TABLES"
 
     def __init__(self, catalogName, tableDefinitions=None) -> None:
         self.catalogName = catalogName
@@ -64,15 +63,17 @@ class ListTablesResponse:
             "@type": "ListTablesResponse",
             "catalogName": self.catalogName,
             "tables": [t.as_dict() for t in self.tables],
-            "requestType": self.requestType
+            "requestType": self.requestType,
         }
         # Missing nextToken - listtables can be paginated
 
 
 class GetTableResponse:
-    request_type = 'GET_TABLE'
+    request_type = "GET_TABLE"
 
-    def __init__(self, catalogName, databaseName, tableName, schema, partitionColumns=None) -> None:
+    def __init__(
+        self, catalogName, databaseName, tableName, schema, partitionColumns=None
+    ) -> None:
         self.catalogName = catalogName
         self.databaseName = databaseName
         self.tableName = tableName
@@ -83,15 +84,15 @@ class GetTableResponse:
         return {
             "@type": "GetTableResponse",
             "catalogName": self.catalogName,
-            "tableName": {'schemaName': self.databaseName, 'tableName': self.tableName},
+            "tableName": {"schemaName": self.databaseName, "tableName": self.tableName},
             "schema": {"schema": AthenaSDKUtils.encode_pyarrow_object(self.schema)},
             "partitionColumns": self.partitions,
-            "requestType": self.request_type
+            "requestType": self.request_type,
         }
 
 
 class GetTableLayoutResponse:
-    request_type = 'GET_TABLE_LAYOUT'
+    request_type = "GET_TABLE_LAYOUT"
 
     def __init__(self, catalogName, databaseName, tableName, partitions=None) -> None:
         self.catalogName = catalogName
@@ -103,20 +104,22 @@ class GetTableLayoutResponse:
         """
         Encodes the schema and each record in the partition config.
         """
+        if not self.partitions:
+            return {}
         partition_keys = self.partitions.keys()
         data = [pa.array(self.partitions[key]) for key in partition_keys]
         batch = pa.RecordBatch.from_arrays(data, list(partition_keys))
         return {
             "aId": str(uuid4()),
             "schema": AthenaSDKUtils.encode_pyarrow_object(batch.schema),
-            "records": AthenaSDKUtils.encode_pyarrow_object(batch)
+            "records": AthenaSDKUtils.encode_pyarrow_object(batch),
         }
 
     def as_dict(self):
         # If _no_ partition_config is provided, we *must* return at least 1 partition
         # otherwise Athena will not know to retrieve data.
         if self.partitions is None:
-            self.partitions = {'partitionId': [1]}
+            self.partitions = {"partitionId": [1]}
             # self.partitions = {
             #     'schema': pa.schema([('partitionId', pa.int32())]),
             #     'records': {
@@ -127,14 +130,14 @@ class GetTableLayoutResponse:
         return {
             "@type": "GetTableLayoutResponse",
             "catalogName": self.catalogName,
-            "tableName": {'schemaName': self.databaseName, 'tableName': self.tableName},
+            "tableName": {"schemaName": self.databaseName, "tableName": self.tableName},
             "partitions": self.encoded_partition_config(),
-            "requestType": self.request_type
+            "requestType": self.request_type,
         }
 
 
 class GetSplitsResponse:
-    request_type = 'GET_SPLITS'
+    request_type = "GET_SPLITS"
 
     def __init__(self, catalogName, splits) -> None:
         self.catalogName = catalogName
@@ -146,12 +149,12 @@ class GetSplitsResponse:
             "catalogName": self.catalogName,
             "splits": self.splits,
             "continuationToken": None,
-            "requestType": self.request_type
+            "requestType": self.request_type,
         }
 
 
 class ReadRecordsResponse:
-    request_type = 'READ_RECORDS'
+    request_type = "READ_RECORDS"
 
     def __init__(self, catalogName, schema, records) -> None:
         self.catalogName = catalogName
@@ -165,13 +168,14 @@ class ReadRecordsResponse:
             "records": {
                 "aId": str(uuid4()),
                 "schema": AthenaSDKUtils.encode_pyarrow_object(self.schema),
-                "records": AthenaSDKUtils.encode_pyarrow_object(self.records)
+                "records": AthenaSDKUtils.encode_pyarrow_object(self.records),
             },
-            "requestType": self.request_type
+            "requestType": self.request_type,
         }
 
+
 class RemoteReadRecordsResponse:
-    request_type = 'READ_RECORDS'
+    request_type = "READ_RECORDS"
 
     def __init__(self, catalogName, schema, remoteBlocks, encryptionKey) -> None:
         self.catalogName = catalogName
@@ -185,5 +189,5 @@ class RemoteReadRecordsResponse:
             "catalogName": self.catalogName,
             "schema": {"schema": AthenaSDKUtils.encode_pyarrow_object(self.schema)},
             "remoteBlocks": [self.remoteBlocks],
-            "encryptionKey": None
+            "encryptionKey": None,
         }

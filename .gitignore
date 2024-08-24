@@ -8,3 +8,6 @@ dist/
 
 # Environment info
 .env
+athena_federation/.DS_Store
+coverage.xml
+.coverage

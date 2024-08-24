@@ -1,7 +1,7 @@
-from typing import Dict, List
+from typing import Dict, Any
 
 import pyarrow as pa
-from smart_open import open
+from smart_open import open  # type: ignore
 
 SPILL_THRESHOLD_BYTES = 5 * 1024 * 1024  # 5MB
 
@@ -26,11 +26,10 @@ class BatchWriter:
     def spilled(self) -> bool:
         return self._spilled
 
-    def write_rows(self, data: Dict):
-        record_batch = pa.RecordBatch.from_arrays(
-            [pa.array(data[name]) for name in self._schema.names],
-            schema=self._schema,
-        )
+    def write_rows(self, data: dict[str, list[Any]]):
+        array_data = [pa.array(data[name]) for name in self._schema.names]
+        record_batch = pa.RecordBatch.from_arrays(arrays=array_data, schema=self._schema)  # type: ignore
+        assert record_batch is not str
         self._batch_size += record_batch.nbytes
         self._writer.write_batch(record_batch)
 

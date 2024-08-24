@@ -1,13 +1,13 @@
-from athena.federation.batch_writer import BatchWriter
-from athena.federation.sdk import AthenaFederationSDK
-from athena.federation.athena_data_source import AthenaDataSource
-from athena.federation.utils import AthenaSDKUtils
-import athena.federation.models as models
+from typing import Union
+import athena_federation.models as models
+from athena_federation.athena_data_source import AthenaDataSource
+from athena_federation.batch_writer import BatchWriter
+from athena_federation.sdk import AthenaFederationSDK
+from athena_federation.utils import AthenaSDKUtils
 
 
 class AthenaLambdaHandler(AthenaFederationSDK):
     def __init__(self, data_source: AthenaDataSource, spill_bucket: str) -> None:
-        super().__init__()
         print(
             f'Initializing Athena data source "{data_source}", spill bucket: s3://{spill_bucket}'
         )
@@ -26,7 +26,7 @@ class AthenaLambdaHandler(AthenaFederationSDK):
         # Populate attributes needed to process the event
         self.event = event
         self.catalog_name = self.event.get("catalogName")
-        request_type = self.event.get("@type")
+        request_type = self.event.get("@type") or "PingRequest"
 
         # TODO: As the event comes in, populate the database name, table name if provided.
         # TODO: I can also create new Request types from the event
@@ -34,7 +34,12 @@ class AthenaLambdaHandler(AthenaFederationSDK):
         # Look up the request type, call it dynamically, and return the dictionary representation of it.
         # Each model returned implements `as_dict` that returns the info necessary for Athena, including
         # specific PyArrow serialization.
-        return getattr(self, request_type)().as_dict()
+        request_attr = getattr(self, request_type)
+        if request_attr:
+            return request_attr().as_dict()
+        else:
+            print(f"Unknown request type: {request_type}")
+            return {}
 
     def PingRequest(self) -> models.PingResponse:
         return models.PingResponse(
@@ -62,6 +67,7 @@ class AthenaLambdaHandler(AthenaFederationSDK):
         )
 
     ## BEGIN: Placeholder methods for partition pruning/splits and spill requests
+    ## Called `getPartitions(BlockWriter blockWriter, GetTableLayoutRequest request)` in Java SDK`
     def GetTableLayoutRequest(self) -> models.GetTableLayoutResponse:
         # The partition schema above was reused from CloudTrail example - we need to
         # add (also?) the schema we want to pass back in a split?
@@ -91,7 +97,10 @@ class AthenaLambdaHandler(AthenaFederationSDK):
 
     ## END: Unimplmented placehodlders
 
-    def ReadRecordsRequest(self) -> models.ReadRecordsResponse:
+    ## Called `readWithConstraint(BlockWriter blockWriter, ReadRecordsRequest request)` in Java SDK
+    def ReadRecordsRequest(
+        self,
+    ) -> Union[models.ReadRecordsResponse, models.RemoteReadRecordsResponse]:
         schema = AthenaSDKUtils.parse_encoded_schema(self.event["schema"]["schema"])
         database_name = self.event.get("tableName").get("schemaName")
         table_name = self.event.get("tableName").get("tableName")
@@ -103,13 +112,14 @@ class AthenaLambdaHandler(AthenaFederationSDK):
         # Otherwise we take the response and wrap it in a list.
         records = self.data_source.records(database_name, table_name, split_properties)
         if isinstance(records, dict):
-            records = [records]
+            records = (record for record in [records])
 
         # Convert the records to pyarrow records
         # Regardless of the return type, we stream it so we can spill to S3.
         # If the resulting batch is <6MB, we can return it immediately.
         writer = BatchWriter(split.get("spillLocation"), schema)
         for record_batch in records:
+            assert isinstance(record_batch, dict)
             writer.write_rows(record_batch)
 
         writer.close()

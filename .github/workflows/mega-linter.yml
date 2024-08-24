@@ -1,0 +1,56 @@
+---
+# MegaLinter GitHub Action configuration file
+# More info at https://megalinter.github.io
+name: MegaLinter
+on:  # yamllint disable-line rule:truthy
+  push: # Comment this line to trigger action only on pull-requests (not recommended if you don't pay for GH Actions)
+permissions: read-all
+env: # Comment env block if you do not want to apply fixes
+  APPLY_FIXES: all # When active, APPLY_FIXES must also be defined as environment variable (in github/workflows/mega-linter.yml or other CI tool)
+  DISABLE_LINTERS: SPELL_CSPELL,COPYPASTE_JSCPD,MAKEFILE_CHECKMAKE,PYTHON_BANDIT,PYTHON_PYRIGHT,PYTHON_PYLINT,REPOSITORY_GRYPE,REPOSITORY_SECRETLINT,REPOSITORY_TRIVY,REPOSITORY_TRUFFLEHOG,REPOSITORY_CHECKOV
+  MARKDOWN_MARKDOWNLINT_FILTER_REGEX_EXCLUDE: "tests/example.*ME\\.md" # Exclude example markdown files from markdownlint
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: MegaLinter
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+      pull-requests: write
+    steps:
+      # Git Checkout
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0 # If you use VALIDATE_ALL_CODEBASE = true, you can remove this line to improve performances
+
+      # MegaLinter
+      - name: MegaLinter
+        id: ml
+        # You can override MegaLinter flavor used to have faster performances
+        # More info at https://megalinter.github.io/flavors/
+        uses: oxsecurity/megalinter/flavors/python@v7.7.0
+        env:
+          # All available variables are described in documentation
+          # https://megalinter.github.io/configuration/
+          VALIDATE_ALL_CODEBASE: true  
+          # VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }} # Validates all source when push on main, else just the git diff with main. Override with true if you always want to lint all sources
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ADD YOUR CUSTOM ENV VARIABLES HERE OR DEFINE THEM IN A FILE .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
+          DISABLE: COPYPASTE,SPELL # Uncomment to disable copy-paste and spell checks
+
+      # Upload MegaLinter artifacts
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        if: true
+        with:
+          name: MegaLinter reports
+          path: |
+            megalinter-reports
+            mega-linter.log

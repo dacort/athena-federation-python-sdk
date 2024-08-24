@@ -1,8 +1,8 @@
-from athena.federation.athena_data_source import AthenaDataSource
+from typing import Any, Dict, List, Mapping, Iterable
 
 import pyarrow as pa
+from athena_federation.athena_data_source import AthenaDataSource
 
-from typing import Mapping, Dict, List, Any
 
 class SampleDataSource(AthenaDataSource):
     """
@@ -10,34 +10,41 @@ class SampleDataSource(AthenaDataSource):
 
     A hard-coded example that shows the different methods you can implement.
     """
+
+    @staticmethod
+    def TransposeData(
+        columns: List[str], data: List[List[Any]]
+    ) -> Dict[str, List[Any]]:
+        """
+        Transpose the data so that it is a dictionary of columns.
+        """
+        zipped: Iterable[list[Any]] = zip(*data)  # type: ignore
+        return dict(zip(columns, list(zipped)))
+
     def __init__(self):
         super().__init__()
-    
+
     def databases(self) -> List[str]:
         return ["sampledb"]
-    
+
     def tables(self, database_name: str) -> List[str]:
         return ["demo"]
-    
+
     def columns(self, database_name: str, table_name: str) -> List[str]:
         return ["id", "name"]
-    
+
     def schema(self, database_name: str, table_name: str) -> pa.Schema:
         return super().schema(database_name, table_name)
-    
+
     def splits(self, database_name: str, table_name: str) -> List[Dict]:
         return [
-            {
-                "name": "split1",
-                "action": "normal"
-            },
-            {
-                "name": "split2",
-                "action": "spill"
-            }
+            {"name": "split1", "action": "normal"},
+            {"name": "split2", "action": "spill"},
         ]
 
-    def records(self, database: str, table: str, split: Mapping[str,str]) -> Dict[str,List[Any]]:
+    def records(
+        self, database: str, table: str, split: Mapping[str, str]
+    ) -> Dict[str, List[Any]]:
         """
         Generate example records
         """
@@ -48,7 +55,6 @@ class SampleDataSource(AthenaDataSource):
             [4, "Janice"],
         ]
         # Demonstrate how splits work by generating a huge response. :)
-        if split.get('action', "") == "spill":
+        if split.get("action", "") == "spill":
             records = records * 4000
-        # We unfortunately need to transpose the data - we should add a helper for this
-        return dict(zip(self.columns(database, table), list(zip(*records))))
+        return self.TransposeData(self.columns(database, table), records)

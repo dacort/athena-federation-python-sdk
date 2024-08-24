@@ -1,21 +1,21 @@
-import os
 import json
+import os
 
-from athena.federation.lambda_handler import AthenaLambdaHandler
-from sample_data_source import SampleDataSource
+from athena_federation.lambda_handler import AthenaLambdaHandler
+from .sample_data_source import SampleDataSource
 
 # This needs to be a valid bucket that the Lambda function role has access to
-spill_bucket = os.environ['TARGET_BUCKET']
+spill_bucket = os.environ.get("SPILL_BUCKET", "quilt-example")
 
 example_handler = AthenaLambdaHandler(
-    data_source=SampleDataSource(),
-    spill_bucket=spill_bucket
+    data_source=SampleDataSource(), spill_bucket=spill_bucket
 )
 
-def lambda_handler(event, context):
+
+def sample_handler(event, context):
     # For debugging purposes, we print both the event and the response :)
-    print(json.dumps(event))
+    print("EVENT", json.dumps(event))
     response = example_handler.process_event(event)
-    print(json.dumps(response))
+    print("RESPONSE", json.dumps(response))
 
     return response

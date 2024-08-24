@@ -1,3 +1,38 @@
+[tool.poetry]
+name = "athena-federation"
+version = "0.1.6"
+description = "Unofficial Python SDK for Athena Federation"
+authors = ["Damon P. Cortesi <d.lifehacker@gmail.com>", "Ernest Prabhakar <ernest@quiltdata.io>"]
+license = "APACHE"
+readme = "README.md"
+homepage = "https://github.com/dacort/athena-federation-python-sdk"
+repository = "https://github.com/dacort/athena-federation-python-sdk"
+documentation = "https://github.com/dacort/athena-federation-python-sdk"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pyarrow = "17.0.0"
+smart-open = "7.0.4"
+importlib-metadata = "<5.0.0"
+pytest-watcher = "^0.4.2"
+pyarrow-stubs = "^10.0.1.9"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2"
+pytest-cov = "^2.11"
+black = "^24.3"
+flake8 = "^7.0"
+mypy = "^1.11.1"
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+    # change in Python 3.12 beta causes warning from inside pytest
+    "ignore:ast:DeprecationWarning",
+    "ignore:attribute:DeprecationWarning",
+]
